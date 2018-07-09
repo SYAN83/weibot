@@ -32,9 +32,10 @@ class WeiboData(object):
         collection = COLLECTION_MAPPING[self.__class__.__name__]
         result = writer.write(self._data, collection=collection)
         if result == -1:
-            logging.warning('Duplicate id (_id:{}) found in collection.'.format(self._data['_id']))
+            logging.warning('Duplicate id found when inserting _id: {} into collection: {}.'.format(self._data['_id'],
+                                                                                                    collection))
         else:
-            logging.info('Data (_id:{}) inserted into {}'.format(result, collection))
+            logging.info('Data (_id:{}) inserted into collection: {}'.format(result, collection))
 
 
 class Status(WeiboData):
@@ -46,6 +47,7 @@ class Status(WeiboData):
            'is_show_bulletin', 'comment_manage_info'
 
     def __init__(self, data: dict, write_obj: bool=False, writer: MongoWriter=None):
+        self._data = dict()
         if 'user' in data:
             user = User(data['user'])
             self._data['uid'] = user.get('_id', 0)
@@ -76,7 +78,7 @@ class User(WeiboData):
 
 class Comment(WeiboData):
 
-    _keys = ()
+    _keys = 'created_at', 'floor_number', 'text', 'disable_reply', 'user', 'mid', 'idstr', 'status'
 
     def __init__(self, data: dict):
         super().__init__(data=data)

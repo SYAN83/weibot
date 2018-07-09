@@ -5,7 +5,7 @@ from utils import MongoWriter
 import logging
 
 FORMAT = '%(asctime) - %(levelname)s - %(message)s'
-logging.basicConfig(format=FORMAT)
+logging.basicConfig(format=FORMAT, level=logging.DEBUG)
 
 
 class Weibot(object):
@@ -26,13 +26,6 @@ class Weibot(object):
             status = Status(s_data)
             print(status._data['created_at'], status._data['_id'])
             status.write(writer=self.writer)
-
-
-    data, _ = api.statuses.user_timeline()
-    for s_data in data['statuses']:
-        status = Status(s_data)
-        print(status)
-        status.write(writer=writer)
 
 
 if __name__ == '__main__':

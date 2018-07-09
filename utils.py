@@ -21,6 +21,7 @@ class MongoWriter(object):
         """
         username = urllib.parse.quote_plus(username)
         password = urllib.parse.quote_plus(password)
+        logging.info('Connect to MongoDB...')
         self.client = pymongo.MongoClient('mongodb://{}:{}@{}:{}'.format(username, password, host, port))
         if 'database' in kwargs:
             self.db = self.client[kwargs['database']]
@@ -37,16 +38,19 @@ class MongoWriter(object):
 
     def get_since_id(self, collection: dict):
         if self.db is None:
-            raise ValueError('Database is  unavailable. Setup database first.')
+            raise ValueError('Database is not available. Setup database first.')
+        logging.info('Search last id from {}'.format(collection))
         since_id = self.db[collection].find_one(filter={}, projection={'_id': 1}, sort=[('_id', -1)])
         if since_id is None:
+            logging.info('Last id was not found in {}'.format(collection))
             return 0
         else:
             return since_id.get('_id', 0)
 
     def get_id_list(self, collection: dict):
         if self.db is None:
-            raise ValueError('Database is  unavailable. Setup database first.')
+            raise ValueError('Database is not available. Setup database first.')
+        logging.info('Search all id from {}'.format(collection))
         id_list = [x['_id'] for x in self.db[collection].find(filter={}, projection={'_id': 1}, sort=[('_id', -1)])]
         return id_list
 
@@ -58,7 +62,7 @@ class MongoWriter(object):
         :return: inserted_id
         """
         if self.db is None:
-            raise ValueError('Database is  unavailable. Setup database first.')
+            raise ValueError('Database is not available. Setup database first.')
         try:
             result = self.db[collection].insert_one(document=data)
         except errors.DuplicateKeyError as e:
