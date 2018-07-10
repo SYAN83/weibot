@@ -9,18 +9,21 @@ COLLECTION_MAPPING = {
 }
 
 
-class WeiboData(object):
+class WeiboObject(object):
 
-    _data = dict()
-    _keys = ()
+    _keys = tuple()
 
     def __init__(self, data: dict):
+        self._data = dict()
         self._data['_id'] = data.get('id', 0)
-        for key in self._keys:
-            if key in self._data:
-                continue
-            elif key in data:
-                self._data[key] = data[key]
+        print(self._data['_id'])
+        if self._keys:
+            for key in self._keys:
+                if key in data:
+                    self._data[key] = data[key]
+        else:
+            self._data = data.copy()
+        self._objects = list()
 
     def get(self, key, *args, **kwargs):
         return self._data.get(key, *args, **kwargs)
@@ -28,57 +31,51 @@ class WeiboData(object):
     def get_data(self):
         return self._data
 
-    def write(self, writer: MongoWriter):
+    def write(self, writer: MongoWriter, write_obj: bool=True, recursive: bool=False):
         collection = COLLECTION_MAPPING[self.__class__.__name__]
+        logging.info('Write data _id: {} into collection: {}'.format(self._data['_id'], collection))
         result = writer.write(self._data, collection=collection)
         if result == -1:
             logging.warning('Duplicate id found when inserting _id: {} into collection: {}.'.format(self._data['_id'],
                                                                                                     collection))
         else:
             logging.info('Data (_id:{}) inserted into collection: {}'.format(result, collection))
+        if write_obj:
+            for obj in self._objects:
+                obj.write(writer=writer, write_obj=recursive, recursive=recursive)
 
 
-class Status(WeiboData):
+class Status(WeiboObject):
 
-    _keys = 'created_at', 'text', 'textLength', 'source', 'favorited', 'truncated', 'pic_urls', 'geo', 'is_paid', \
-           'annotations', 'reposts_count', 'comments_count', 'attitudes_count', 'isLongText', 'multi_attitude', \
-           'hide_flag', 'visible', 'biz_ids', 'biz_feature', 'page_type', 'hasActionTypeCard', 'darwin_tags', \
-           'hot_weibo_tags', 'text_tag_tips', 'userType', 'positive_recom_flag', 'content_auth', 'gif_ids', \
-           'is_show_bulletin', 'comment_manage_info'
-
-    def __init__(self, data: dict, write_obj: bool=False, writer: MongoWriter=None):
-        self._data = dict()
+    def __init__(self, data: dict):
+        super().__init__(data=data)
         if 'user' in data:
-            user = User(data['user'])
-            self._data['uid'] = user.get('_id', 0)
-            if write_obj and writer:
-                user.write(writer=writer)
-        elif 'uid' in data:
-            self._data['uid'] = data.get('uid', 0)
+            self._objects.append(User(data['user']))
+            self._data['uid'] = self._objects[-1].get('_id', 0)
         if 'retweeted_status' in data:
-            retweeted_status = Status(data=data['retweeted_status'])
-            self._data['retweeted_id'] = retweeted_status.get('_id')
-            if write_obj and writer:
-                retweeted_status.write(writer=writer)
-        super().__init__(data=data)
+            self._objects.append(Status(data=data['retweeted_status']))
+            self._data['retweeted_id'] = self._objects[-1].get('_id')
+        for key in ['id', 'idstr', 'mid', 'user', 'retweeted_status']:
+            self._data.pop(key, None)
 
 
-class User(WeiboData):
-
-    _keys = 'screen_name', 'name', 'province', 'city', 'location', 'description', 'url', 'profile_image_url', \
-            'cover_image', 'cover_image_phone', 'profile_url', 'domain', 'gender',  'created_at', 'geo_enabled',\
-            'verified', 'insecurity', 'ptype', 'allow_all_comment', 'avatar_large', 'avatar_hd', 'verified_reason', \
-            'verified_state', 'verified_level', 'verified_type_ext', 'has_service_tel', 'verified_contact_name', \
-            'verified_contact_email', 'verified_contact_mobile', 'follow_me', 'like', 'like_me', 'online_status', \
-            'bi_followers_count', 'lang', 'star', 'block_word', 'block_app', 'credit_score', 'user_ability', 'urank'
+class User(WeiboObject):
 
     def __init__(self, data: dict):
         super().__init__(data=data)
+        for key in ['id', 'idstr', 'status']:
+            self._data.pop(key, None)
 
 
-class Comment(WeiboData):
-
-    _keys = 'created_at', 'floor_number', 'text', 'disable_reply', 'user', 'mid', 'idstr', 'status'
+class Comment(WeiboObject):
 
     def __init__(self, data: dict):
         super().__init__(data=data)
+        if 'user' in data:
+            self._objects.append(User(data['user']))
+            self._data['uid'] = self._objects[-1].get('_id', 0)
+        if 'reply_comment' in data:
+            self._objects.append(Comment(data=data['reply_comment']))
+            self._data['reply_id'] = self._objects[-1].get('_id')
+        for key in ['id', 'idstr', 'mid', 'status', 'user', 'reply_comment']:
+            self._data.pop(key, None)
