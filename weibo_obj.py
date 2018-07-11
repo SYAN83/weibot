@@ -49,10 +49,10 @@ class Status(WeiboObject):
     def __init__(self, data: dict):
         super().__init__(data=data)
         if 'user' in data:
-            self._data['uid'] = data['user'].get('_id')
+            self._data['uid'] = data['user'].get('id')
             self._objects.append(User(data['user']))
         if 'retweeted_status' in data:
-            self._data['retweeted_id'] = data['retweeted_status'].get('_id')
+            self._data['retweeted_id'] = data['retweeted_status'].get('id')
             self._objects.append(Status(data=data['retweeted_status']))
         for key in ['id', 'idstr', 'mid', 'user', 'retweeted_status']:
             self._data.pop(key, None)
@@ -73,10 +73,10 @@ class Comment(WeiboObject):
         if 'status' in data:
             self._data['sid'] = data['status'].get('id')
         if 'user' in data:
-            self._data['uid'] = data['user'].get('_id')
+            self._data['uid'] = data['user'].get('id')
             self._objects.append(User(data['user']))
         if 'reply_comment' in data:
-            self._data['replied_id'] = data['reply_comment'].get('_id')
+            self._data['replied_id'] = data['reply_comment'].get('id')
             self._objects.append(Comment(data=data['reply_comment']))
         for key in ['id', 'idstr', 'mid', 'rootid', 'status', 'user', 'reply_comment']:
             self._data.pop(key, None)

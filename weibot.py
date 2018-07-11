@@ -52,6 +52,9 @@ class Weibot(object):
         comments = partial(self.api.comments.show, id=sid, since_id=since_id)
         self.crawler(api_func=comments, obj_class=Comment, obj_name='comments', insert=insert)
 
+    def pipeline(self):
+        self.writer.get_since_id('statuses')
+
 
 if __name__ == '__main__':
     with open('./credentials.yml') as f:
