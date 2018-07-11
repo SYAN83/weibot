@@ -1,3 +1,4 @@
 git+https://github.com/SYAN83/weibopy
 pyyaml
 pymongo
+apscheduler
