@@ -34,12 +34,14 @@ class Weibot(object):
             else:
                 flag = False
                 records = [r for r in [obj_class(x) for x in data[obj_name]]]
-                if max_id:
+                if max_id > 0:
                     records = [r for r in records if r.get('_id', 0) < max_id]
                 logging.info('Total number of records for insertion: {}'.format(len(records)))
                 for record in records:
-                    flag = flag and record.write(writer=self.writer, recursive=True)
-                max_id = min([r.get('_id', 0) for r in records])
+                    resp = record.write(writer=self.writer, recursive=True)
+                    flag = flag or resp
+                else:
+                    max_id = record.get('_id', 0)
 
     def crawl_user_timeline(self, since_id=0):
         user_timeline = partial(self.api.statuses.user_timeline, since_id=since_id)
