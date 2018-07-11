@@ -1,10 +1,13 @@
 import yaml
 import weibopy as wb
-from weibo_data import *
+from weibo_obj import *
 from utils import MongoWriter
 import logging
+from typing import Callable
+from functools import partial
 
-FORMAT = '%(asctime) - %(levelname)s - %(message)s'
+
+FORMAT = '%(asctime)s %(funcName)s %(levelname)s %(message)s'
 logging.basicConfig(format=FORMAT, level=logging.DEBUG)
 
 
@@ -19,41 +22,39 @@ class Weibot(object):
         oauth = wb.OAuthHandler(**weibo_credentials).authorize()
         self.api = wb.API(oauth=oauth)
 
-    # def download_user_timeline(self, since_last=True):
-    #     since_id = 0
-    #     if since_last:
-    #         since_id = self.writer.get_since_id(collection='statuses')
-    #     data, _ = self.api.statuses.user_timeline(since_id=since_id)
-    #     for s_data in data['statuses']:
-    #         status = Status(s_data)
-    #         print(status._data['created_at'], status._data['_id'])
-    #         status.write(writer=self.writer)
-
-    def crawl_statuses(self, since_id=0, insert: bool=False):
+    def crawler(self, api_func: Callable, obj_class: Callable, obj_name: str, insert: bool=False):
         max_id = 0
         while True:
-            data, _ = self.api.statuses.user_timeline(since_id=since_id, max_id=max_id)
-            if 'error' in data:
-                logging.error(data.get('error', ''))
+            try:
+                data, _ = api_func(max_id=max_id)
+            except wb.APIError as e:
+                logging.error(e)
                 exit(1)
-            records = [s for s in [Status(x) for x in data['statuses']] if s.get('_id') not in self.skip_id]
-            logging.info('Total new records: {}'.format(len(records)))
-            if records:
-                for record in records:
-                    if record.get('_id') not in self.skip_id:
-                        if insert:
-                            record.write(writer=self.writer)
-                            self.skip_id.add(record.get('_id'))
-                        else:
-                            print(record.get('_id'), record.get('created_at'))
-                else:
-                    max_id = record.get('_id')
-            else:
+            records = [r for r in [obj_class(x) for x in data[obj_name]]]
+            if max_id:
+                records = [r for r in records if r.get('_id', 0) < max_id]
+            if not records:
                 break
+            elif insert:
+                logging.info('Total number of records for insertion: {}'.format(len(records)))
+                for record in records:
+                    record.write(writer=self.writer, recursive=True)
+            else:
+                for record in records:
+                    print(record.get('_id'), record.get('created_at'))
+            max_id = min([r.get('_id', 0) for r in records])
+
+    def crawl_user_timeline(self, since_id=0, insert: bool=True):
+        user_timeline = partial(self.api.statuses.user_timeline, since_id=since_id)
+        self.crawler(api_func=user_timeline, obj_class=Status, obj_name='statuses', insert=insert)
+
+    def crawl_comments(self, sid: int, since_id: int=0, insert: bool=True):
+        comments = partial(self.api.comments.show, id=sid, since_id=since_id)
+        self.crawler(api_func=comments, obj_class=Comment, obj_name='comments', insert=insert)
 
 
 if __name__ == '__main__':
     with open('./credentials.yml') as f:
         cred = yaml.load(f)
     weibot = Weibot(mongo_credentials=cred['mongo'], weibo_credentials=cred['weibo'])
-    weibot.crawl_statuses()
+    weibot.crawl_comments()

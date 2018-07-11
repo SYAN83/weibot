@@ -55,7 +55,7 @@ class MongoWriter(object):
         id_list = [x['_id'] for x in self.db[collection].find(filter={}, projection={'_id': 1}, sort=[('_id', -1)])]
         return id_list
 
-    def write(self, data: dict, collection: dict, skip_duplicate: bool=True)
+    def write(self, data: dict, collection: dict):
         """
         Write data to MongoDB collection
         :param data:
@@ -64,7 +64,7 @@ class MongoWriter(object):
         """
         if self.db is None:
             raise ValueError('Database is not available. Setup database first.')
-        if skip_duplicate and data.get('_id') and data.get('_id') in self._skip_id():
+        if data.get('_id') and data.get('_id') in self._skip_id:
             logging.warning('Document _id: {} found in skip id list, skipped'.format(data.get('_id')))
             return -1
         else:
