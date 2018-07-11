@@ -9,6 +9,7 @@ class MongoWriter(object):
     MongoDB writer
     """
     db = None
+    _skip_id = set()
 
     def __init__(self, username: str, password: str, host: str, port: int=27017, **kwargs):
         """
@@ -54,7 +55,7 @@ class MongoWriter(object):
         id_list = [x['_id'] for x in self.db[collection].find(filter={}, projection={'_id': 1}, sort=[('_id', -1)])]
         return id_list
 
-    def write(self, data: dict, collection: dict):
+    def write(self, data: dict, collection: dict, skip_duplicate: bool=True)
         """
         Write data to MongoDB collection
         :param data:
@@ -63,13 +64,18 @@ class MongoWriter(object):
         """
         if self.db is None:
             raise ValueError('Database is not available. Setup database first.')
-        try:
-            result = self.db[collection].insert_one(document=data)
-        except errors.DuplicateKeyError as e:
-            logging.error(e)
+        if skip_duplicate and data.get('_id') and data.get('_id') in self._skip_id():
+            logging.warning('Document _id: {} found in skip id list, skipped'.format(data.get('_id')))
             return -1
         else:
-            return result.inserted_id
+            try:
+                result = self.db[collection].insert_one(document=data)
+            except errors.DuplicateKeyError as e:
+                logging.error(e)
+                return -1
+            else:
+                self._skip_id.add(result.inserted_id)
+                return result.inserted_id
 
     def update(self, data: dict, collection: dict):
         pass

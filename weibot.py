@@ -35,7 +35,7 @@ class Weibot(object):
             data, _ = self.api.statuses.user_timeline(since_id=since_id, max_id=max_id)
             if 'error' in data:
                 logging.error(data.get('error', ''))
-                return
+                exit(1)
             records = [s for s in [Status(x) for x in data['statuses']] if s.get('_id') not in self.skip_id]
             logging.info('Total new records: {}'.format(len(records)))
             if records:

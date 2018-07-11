@@ -15,14 +15,13 @@ class WeiboObject(object):
 
     def __init__(self, data: dict):
         self._data = dict()
-        self._data['_id'] = data.get('id', 0)
-        print(self._data['_id'])
         if self._keys:
             for key in self._keys:
                 if key in data:
                     self._data[key] = data[key]
         else:
             self._data = data.copy()
+        self._data['_id'] = data.get('id', 0)
         self._objects = list()
 
     def get(self, key, *args, **kwargs):
@@ -50,11 +49,11 @@ class Status(WeiboObject):
     def __init__(self, data: dict):
         super().__init__(data=data)
         if 'user' in data:
+            self._data['uid'] = data['user'].get('_id')
             self._objects.append(User(data['user']))
-            self._data['uid'] = self._objects[-1].get('_id', 0)
         if 'retweeted_status' in data:
+            self._data['retweeted_id'] = data['retweeted_status'].get('_id')
             self._objects.append(Status(data=data['retweeted_status']))
-            self._data['retweeted_id'] = self._objects[-1].get('_id')
         for key in ['id', 'idstr', 'mid', 'user', 'retweeted_status']:
             self._data.pop(key, None)
 
@@ -71,11 +70,13 @@ class Comment(WeiboObject):
 
     def __init__(self, data: dict):
         super().__init__(data=data)
+        if 'status' in data:
+            self._data['sid'] = data['status'].get('id')
         if 'user' in data:
+            self._data['uid'] = data['user'].get('_id')
             self._objects.append(User(data['user']))
-            self._data['uid'] = self._objects[-1].get('_id', 0)
         if 'reply_comment' in data:
+            self._data['replied_id'] = data['reply_comment'].get('_id')
             self._objects.append(Comment(data=data['reply_comment']))
-            self._data['reply_id'] = self._objects[-1].get('_id')
-        for key in ['id', 'idstr', 'mid', 'status', 'user', 'reply_comment']:
+        for key in ['id', 'idstr', 'mid', 'rootid', 'status', 'user', 'reply_comment']:
             self._data.pop(key, None)
