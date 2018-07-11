@@ -37,7 +37,7 @@ class MongoWriter(object):
         """
         self.db = self.client[database]
 
-    def get_since_id(self, collection: dict):
+    def get_since_id(self, collection: str):
         if self.db is None:
             raise ValueError('Database is not available. Setup database first.')
         logging.info('Search last id from {}'.format(collection))
@@ -48,14 +48,14 @@ class MongoWriter(object):
         else:
             return since_id.get('_id', 0)
 
-    def get_id_list(self, collection: dict):
+    def get_id_list(self, collection: str):
         if self.db is None:
             raise ValueError('Database is not available. Setup database first.')
         logging.info('Search all id from {}'.format(collection))
         id_list = [x['_id'] for x in self.db[collection].find(filter={}, projection={'_id': 1}, sort=[('_id', -1)])]
         return id_list
 
-    def write(self, data: dict, collection: dict):
+    def write(self, data: dict, collection: str):
         """
         Write data to MongoDB collection
         :param data:

@@ -39,9 +39,10 @@ class WeiboObject(object):
                                                                                                     collection))
         else:
             logging.info('Data (_id:{}) inserted into collection: {}'.format(result, collection))
-        if write_obj:
-            for obj in self._objects:
-                obj.write(writer=writer, write_obj=recursive, recursive=recursive)
+            if write_obj:
+                for obj in self._objects:
+                    obj.write(writer=writer, write_obj=recursive, recursive=recursive)
+        return result > 0
 
 
 class Status(WeiboObject):
