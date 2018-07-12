@@ -18,17 +18,17 @@ def main(duration: int=24, interval: int=1, time_unit: str='hours'):
             sleep_time *= 60
         else:
             raise ValueError('Invalid time unit')
-    with open('./credentials.yml') as f:
+    with open('./credentials.yml', 'r') as f:
         cred = yaml.load(f)
-    weibot = Weibot(mongo_credentials=cred['mongo'], weibo_credentials=cred['weibo'])
+    bot = Weibot(mongo_credentials=cred['mongo'], weibo_credentials=cred['weibo'])
     scheduler = BackgroundScheduler()
-    job = scheduler.add_job(weibot.crawl, 'interval', **{time_unit:interval})
+    job = scheduler.add_job(bot.crawl, 'interval', **{time_unit:interval})
     logging.info(job)
     scheduler.start()
     if duration > 0:
-        time.sleep(duration)
+        time.sleep(sleep_time)
         scheduler.shutdown(wait=True)
 
 
 if __name__ == '__main__':
-    main(duration=48)
+    main()

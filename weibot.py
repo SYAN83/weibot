@@ -1,14 +1,18 @@
-import yaml
 import weibopy as wb
 from weibo_obj import *
 from utils import MongoWriter
 import logging
 from typing import Callable
 from functools import partial
+import os
+import yaml
+from requests_oauthlib.oauth2_session import OAuth2Session
 
 
 FORMAT = '%(asctime)s %(funcName)s %(levelname)s %(message)s'
 logging.basicConfig(format=FORMAT, level=logging.DEBUG)
+
+OAUTH = '.oauth.yml'
 
 
 class Weibot(object):
@@ -17,8 +21,20 @@ class Weibot(object):
         # connect to mongodb
         self.writer = MongoWriter(**mongo_credentials)
         # connect to weibo API
-        oauth = wb.OAuthHandler(**weibo_credentials).authorize()
+        oauth = self._get_oauth(**weibo_credentials)
         self.api = wb.API(oauth=oauth)
+
+    def _get_oauth(self, **weibo_credentials):
+        if os.path.exists(OAUTH):
+            with open(OAUTH, 'r') as f:
+                oauth_token = yaml.load(f)
+            print(oauth_token)
+            oauth = OAuth2Session(token=oauth_token)
+        else:
+            oauth = wb.OAuthHandler(**weibo_credentials).authorize()
+            with open(OAUTH, 'w') as f:
+                yaml.dump(oauth.token, f)
+        return oauth
 
     def _crawlbot(self, api_func: Callable, obj_class: Callable, obj_name: str, since_last: bool=True):
         max_id = 0

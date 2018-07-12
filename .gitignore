@@ -4,4 +4,4 @@ venv/
 __pycache__/
 credentials.yml
 nohup.out
-
+.oauth.yml
