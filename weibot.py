@@ -36,7 +36,7 @@ class Weibot(object):
                 yaml.dump(oauth.token, f)
         return oauth
 
-    def _crawlbot(self, api_func: Callable, obj_class: Callable, obj_name: str, since_last: bool=True):
+    def _crawlbot(self, api_func: Callable, obj_class: Callable, obj_name: str, since_last: bool=True, suffix: str=''):
         max_id = 0
         flag = True
         since_id = 0
@@ -56,25 +56,25 @@ class Weibot(object):
                 if records:
                     flag = False
                     for record in records:
-                        resp = record.write(writer=self.writer, recursive=True)
+                        resp = record.write(writer=self.writer, recursive=True, suffix=suffix)
                         flag = flag or resp
                     max_id = records[-1].get('_id', 0)
                 else:
                     break
 
-    def crawl_user_timeline(self, since_last: bool=True):
+    def crawl_user_timeline(self, since_last: bool=True, suffix: str=''):
         user_timeline = partial(self.api.statuses.user_timeline)
-        self._crawlbot(api_func=user_timeline, obj_class=Status, obj_name='statuses', since_last=since_last)
+        self._crawlbot(api_func=user_timeline, obj_class=Status, obj_name='statuses', since_last=since_last, suffix=suffix)
 
-    def crawl_comments(self, sid: int, since_last: bool=True):
+    def crawl_comments(self, sid: int, since_last: bool=True, suffix: str=''):
         comments = partial(self.api.comments.show, id=sid)
-        self._crawlbot(api_func=comments, obj_class=Comment, obj_name='comments', since_last=since_last)
+        self._crawlbot(api_func=comments, obj_class=Comment, obj_name='comments', since_last=since_last, suffix=suffix)
 
-    def crawl(self):
-        self.crawl_user_timeline()
-        for sid in self.writer.get_id_list('statuses'):
+    def crawl(self, suffix: str=''):
+        self.crawl_user_timeline(suffix=suffix)
+        for sid in self.writer.get_id_list('statuses' + suffix):
             logging.info('Update comments for status _id: {}'.format(sid))
-            self.crawl_comments(sid=sid)
+            self.crawl_comments(sid=sid, suffix=suffix)
 
 
 if __name__ == '__main__':

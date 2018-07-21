@@ -30,8 +30,8 @@ class WeiboObject(object):
     def get_data(self):
         return self._data
 
-    def write(self, writer: MongoWriter, write_obj: bool=True, recursive: bool=False):
-        collection = COLLECTION_MAPPING[self.__class__.__name__]
+    def write(self, writer: MongoWriter, write_obj: bool=True, recursive: bool=False, suffix: str=''):
+        collection = COLLECTION_MAPPING[self.__class__.__name__] + suffix
         logging.info('Write data _id: {} into collection: {}'.format(self._data['_id'], collection))
         result = writer.write(self._data, collection=collection)
         if result == -1:
