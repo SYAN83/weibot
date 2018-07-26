@@ -95,14 +95,14 @@ class Friendships(object):
     def __init__(self, friends: Dict=dict(), followers: Dict=dict()):
         if not friends or not followers:
             raise ValueError('Data is not available.')
-        for key in ['next_cursor', 'previous_cursor']:
-            del friends[key]
-            del followers[key]
         self._data = dict()
         self._data['_id'] = int(time.time())
         self._data['created_at'] = datetime.datetime.now(pytz.timezone('Asia/Shanghai')).strftime(DATETIME_FMT)
-        self._data['friends'] = friends
-        self._data['followers'] = followers
+        self._data['friends_ids'] = friends['ids']
+        self._data['friends_total_number'] = friends['total_number']
+        self._data['followers_ids'] = followers['ids']
+        self._data['followers_total_number'] = followers['total_number']
+        self._data['followers_display_total_number'] = followers['display_total_number']
 
     def write(self, writer: MongoWriter, suffix: str=''):
         collection = COLLECTION_MAPPING[self.__class__.__name__] + suffix
