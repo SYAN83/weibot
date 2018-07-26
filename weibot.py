@@ -2,10 +2,11 @@ import weibopy as wb
 from weibo_obj import *
 from utils import MongoWriter
 import logging
-from typing import Callable
+from typing import Callable, Dict
 from functools import partial
 import os
 import yaml
+import time
 from requests_oauthlib.oauth2_session import OAuth2Session
 
 
@@ -36,12 +37,13 @@ class Weibot(object):
                 yaml.dump(oauth.token, f)
         return oauth
 
-    def _crawlbot(self, api_func: Callable, obj_class: Callable, obj_name: str, since_last: bool=True, suffix: str=''):
+    def _crawlbot(self, api_func: Callable, obj_class: Callable, obj_name: str,
+                  since_last: bool=True, filters: Dict=dict(), suffix: str=''):
         max_id = 0
         flag = True
         since_id = 0
         if since_last:
-            since_id = self.writer.get_since_id(obj_name)
+            since_id = self.writer.get_since_id(collection=obj_name+suffix, filters=filters)
         while flag:
             try:
                 data, _ = api_func(since_id=since_id, max_id=max_id)
@@ -64,11 +66,26 @@ class Weibot(object):
 
     def crawl_user_timeline(self, since_last: bool=True, suffix: str=''):
         user_timeline = partial(self.api.statuses.user_timeline)
-        self._crawlbot(api_func=user_timeline, obj_class=Status, obj_name='statuses', since_last=since_last, suffix=suffix)
+        self._crawlbot(api_func=user_timeline,
+                       obj_class=Status,
+                       obj_name='statuses',
+                       since_last=since_last,
+                       suffix=suffix)
 
     def crawl_comments(self, sid: int, since_last: bool=True, suffix: str=''):
         comments = partial(self.api.comments.show, id=sid)
-        self._crawlbot(api_func=comments, obj_class=Comment, obj_name='comments', since_last=since_last, suffix=suffix)
+        self._crawlbot(api_func=comments,
+                       obj_class=Comment,
+                       obj_name='comments',
+                       since_last=since_last,
+                       filters={'sid': sid},
+                       suffix=suffix)
+
+    def crawl_friendships(self, suffix: str=''):
+        friends, _ = self.api.friendships.friends_ids()
+        followers, _ = self.api.friendships.followers_ids()
+        friendships = Friendships(friends=friends, followers=followers)
+        friendships.write(self.writer, suffix=suffix)
 
     def crawl(self, suffix: str=''):
         self.crawl_user_timeline(suffix=suffix)
@@ -81,4 +98,7 @@ if __name__ == '__main__':
     with open('./credentials.yml') as f:
         cred = yaml.load(f)
     weibot = Weibot(mongo_credentials=cred['mongo'], weibo_credentials=cred['weibo'])
-    weibot.crawl()
+    # weibot.crawl_user_timeline(suffix='-test')
+    # weibot.crawl()
+    weibot.crawl_friendships(suffix='-test')
+

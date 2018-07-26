@@ -2,6 +2,7 @@ import pymongo
 from pymongo import errors
 import urllib.parse
 import logging
+from typing import Dict
 
 
 class MongoWriter(object):
@@ -37,11 +38,17 @@ class MongoWriter(object):
         """
         self.db = self.client[database]
 
-    def get_since_id(self, collection: str):
+    def get_since_id(self, collection: str, filters: Dict=dict()):
+        """
+        Get the most recent _id from collection
+        :param collection:
+        :param filters:
+        :return:
+        """
         if self.db is None:
             raise ValueError('Database is not available. Setup database first.')
         logging.info('Search last id from {}'.format(collection))
-        since_id = self.db[collection].find_one(filter={}, projection={'_id': 1}, sort=[('_id', -1)])
+        since_id = self.db[collection].find_one(filter=filters, projection={'_id': 1}, sort=[('_id', -1)])
         if since_id is None:
             logging.info('Last id was not found in {}'.format(collection))
             return 0
@@ -49,6 +56,11 @@ class MongoWriter(object):
             return since_id.get('_id', 0)
 
     def get_id_list(self, collection: str):
+        """
+        Get a list of _id from collection
+        :param collection:
+        :return:
+        """
         if self.db is None:
             raise ValueError('Database is not available. Setup database first.')
         logging.info('Search all id from {}'.format(collection))

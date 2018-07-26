@@ -24,8 +24,10 @@ def main(duration: int=24, interval: int=1, time_unit: str='hours'):
     bot = Weibot(mongo_credentials=cred['mongo'], weibo_credentials=cred['weibo'])
     # start scheduler
     scheduler = BackgroundScheduler()
-    job = scheduler.add_job(bot.crawl, 'interval', **{time_unit:interval})
+    job = scheduler.add_job(bot.crawl, 'interval', **{time_unit: interval})
     logging.info(job)
+    job2 = scheduler.add_job(bot.crawl_friendships, 'cron', hour='*')
+    logging.info(job2)
     scheduler.start()
     # shut down scheduler
     if duration > 0:
@@ -34,4 +36,4 @@ def main(duration: int=24, interval: int=1, time_unit: str='hours'):
 
 
 if __name__ == '__main__':
-    main(duration=8, interval=2, time_unit='minutes')
+    main(duration=3, interval=1, time_unit='hours')
